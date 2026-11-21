@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTS Flight Data Downloader | Digital Method</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f4f5fa;
+      color: #101d2d;
+      --indigo: #4546a6;
+      --muted: #455267;
+      --line: #d9deeb;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; }
+    main { width: min(100% - 40px, 720px); margin: clamp(36px, 9vw, 96px) auto; }
+    .brand { color: var(--indigo); font-weight: 700; letter-spacing: .035em; }
+    h1 { font-size: clamp(1.85rem, 5vw, 2.65rem); letter-spacing: -.04em; margin: 10px 0 8px; }
+    p { line-height: 1.55; margin: 0; }
+    header p, .detail { color: var(--muted); }
+    section { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: clamp(20px, 5vw, 32px); margin-top: 28px; }
+    .range { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    label { display: grid; gap: 8px; font-weight: 650; }
+    select, button { font: inherit; min-height: 46px; border-radius: 8px; }
+    select { width: 100%; background: #fff; color: inherit; border: 1px solid #a0a9bf; padding: 8px 12px; }
+    button { border: 1px solid transparent; padding: 9px 15px; cursor: pointer; font-weight: 650; }
+    button:disabled { cursor: default; opacity: .55; }
+    button[type=submit] { background: var(--indigo); color: #fff; }
+    .secondary { background: #fff; border-color: var(--line); color: var(--indigo); }
+    :focus-visible { outline: 3px solid var(--indigo); outline-offset: 3px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .detail { font-size: .9rem; }
+    #range-note { min-height: 1.55em; margin-top: 12px; }
+    #output { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 18px; }
+    #folder { display: block; overflow-wrap: anywhere; margin-top: 4px; }
+    #status { margin-top: 20px; background: #f4f5fa; padding: 14px 16px; border-radius: 10px; overflow-wrap: anywhere; }
+    #message, .error { white-space: pre-wrap; }
+    .error { color: #941e2f; }
+    progress { width: 100%; height: 12px; margin: 10px 0 6px; accent-color: var(--indigo); }
+    #benchmark { margin-top: 8px; }
+    footer { margin: 16px 0; font-size: .88rem; color: var(--muted); }
+    footer a { color: var(--indigo); }
+    @media (max-width: 385px) { .range { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">Digital Method</div>
+    <h1>BTS flight data downloader</h1>
+    <p>Download monthly reporting-carrier data and convert it to Parquet for analysis.</p>
+  </header>
+  <section aria-label="Download flight data">
+    <form id="download-form">
+      <div class="range">
+        <label>Start month<select id="start" disabled></select></label>
+        <label>End month<select id="end" disabled></select></label>
+      </div>
+      <p id="range-note" class="detail" role="status">Loading available months from BTS…</p>
+      <div class="actions">
+        <button id="download" type="submit" disabled>Download and convert</button>
+        <button id="refresh" type="button" class="secondary" disabled>Refresh months</button>
+      </div>
+    </form>
+    <div id="status" hidden>
+      <p id="message" role="status"></p>
+      <progress id="progress" aria-label="Months completed" value="0" max="1"></progress>
+      <p id="counts" class="detail"></p>
+      <p id="benchmark" class="detail"></p>
+    </div>
+    <div id="output" class="detail" hidden>
+      <strong>Data folder</strong>
+      <code id="folder"></code>
+    </div>
+  </section>
+  <footer><a href="/explore">Explore signals</a> · <a href="https://www.transtats.bts.gov/PREZIP/" target="_blank" rel="noopener">BTS TranStats monthly archive listing</a></footer>
+</main>
+<script>
+  const byId = id => document.getElementById(id);
+  const start = byId("start");
+  const end = byId("end");
+  const download = byId("download");
+  const refresh = byId("refresh");
+  const rangeNote = byId("range-note");
+  const label = new Intl.DateTimeFormat("en-US", {year: "numeric", month: "long", timeZone: "UTC"});
+  let months = [];
+  let token = "";
+  let busy = false;
+  let loading = false;
+
+  async function request(path, options) {
+    const response = await fetch(path, options);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Request failed.");
+    return data;
+  }
+
+  function monthOrdinal(month) {
+    const [year, number] = month.split("-").map(Number);
+    return year * 12 + number - 1;
+  }
+
+  function fillSelect(select, choices, selection) {
+    select.replaceChildren(...choices.slice().reverse().map(month =>
+      new Option(label.format(new Date(month + "-01T00:00:00Z")), month)
+    ));
+    if (choices.includes(selection)) select.value = selection;
+  }
+
+  function rangeState() {
+    const selected = months.filter(month => month >= start.value && month <= end.value).length;
+    const required = start.value && end.value ? monthOrdinal(end.value) - monthOrdinal(start.value) + 1 : 0;
+    return {selected, missing: required - selected};
+  }
+
+  function updateControls() {
+    start.disabled = end.disabled = busy || loading || !months.length;
+    refresh.disabled = busy || loading;
+    const {selected, missing} = rangeState();
+    download.disabled = busy || loading || !selected || missing > 0;
+    if (!loading && months.length) {
+      rangeNote.textContent = missing > 0
+        ? `${missing} months in this range are missing from the BTS listing. Select a continuous range.`
+        : `${selected} month${selected === 1 ? "" : "s"} selected. Completed months are reused.`;
+      rangeNote.classList.toggle("error", missing > 0);
+    }
+  }
+
+  async function loadCatalog() {
+    loading = true;
+    rangeNote.textContent = "Loading available months from BTS…";
+    rangeNote.classList.remove("error");
+    updateControls();
+    try {
+      const data = await request("/api/catalog");
+      const previousStart = start.value;
+      const previousEnd = end.value;
+      months = data.months;
+      token = data.token;
+      const first = months.includes(data.defaultStart) ? data.defaultStart : months.at(-1);
+      const last = months.includes(data.defaultEnd) && data.defaultEnd >= first
+        ? data.defaultEnd : months.at(-1);
+      fillSelect(start, months, previousStart || first);
+      fillSelect(end, months.filter(month => month >= start.value), previousEnd || last);
+      byId("folder").textContent = data.dataDirectory;
+      byId("output").hidden = false;
+    } catch (error) {
+      months = [];
+      rangeNote.textContent = error.message;
+      rangeNote.classList.add("error");
+    } finally {
+      loading = false;
+      updateControls();
+    }
+  }
+
+  function renderStatus(data) {
+    busy = data.state === "running";
+    if (data.state !== "idle") {
+      byId("status").hidden = false;
+      byId("message").textContent = data.message;
+      byId("message").classList.toggle("error", data.state === "error");
+      const progress = byId("progress");
+      progress.max = data.total;
+      progress.value = data.completed;
+      byId("counts").textContent = `${data.completed} of ${data.total} months ready · ${data.rows.toLocaleString()} flight records`;
+      byId("benchmark").textContent = data.benchmark || "";
+    }
+    updateControls();
+  }
+
+  async function pollStatus() {
+    try {
+      renderStatus(await request("/api/status"));
+    } catch (error) {
+      if (!busy) return;
+      byId("message").textContent = "Waiting to reconnect to the local downloader…";
+    }
+    if (busy) setTimeout(pollStatus, 800);
+  }
+
+  start.addEventListener("change", () => {
+    const previousEnd = end.value;
+    fillSelect(end, months.filter(month => month >= start.value),
+      previousEnd >= start.value ? previousEnd : start.value);
+    updateControls();
+  });
+  end.addEventListener("change", updateControls);
+  refresh.addEventListener("click", loadCatalog);
+  byId("download-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (download.disabled) return;
+    busy = true;
+    updateControls();
+    try {
+      renderStatus(await request("/api/download", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-Download-Token": token},
+        body: JSON.stringify({start: start.value, end: end.value}),
+      }));
+      if (busy) pollStatus();
+    } catch (error) {
+      busy = false;
+      byId("status").hidden = false;
+      byId("message").textContent = error.message;
+      byId("message").classList.add("error");
+      updateControls();
+    }
+  });
+  loadCatalog();
+  pollStatus();
+</script>
+</body>
+</html>

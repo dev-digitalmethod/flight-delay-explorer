@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flight Delay Explorer | Digital Method</title>
+  <meta name="description" content="Explore U.S. departure delays by month, airport, and airline using public Bureau of Transportation Statistics data.">
+  <script src="https://cdn.plot.ly/plotly-4.1.1.min.js" defer></script>
+  <style>
+    :root { color-scheme: light; --navy: #101d2d; --muted: #526078; --accent: #4546a6; --line: #dbe0ed; --paper: #f4f5fa; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--paper); color: var(--navy); font: 15px/1.5 system-ui, -apple-system, sans-serif; }
+    a { color: var(--accent); }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 15px max(22px, calc((100vw - 1460px) / 2)); border-bottom: 1px solid var(--line); background: white; }
+    .brand { text-decoration: none; font-weight: 750; color: var(--accent); letter-spacing: .02em; }
+    main { max-width: 1504px; margin: auto; padding: 26px 22px 44px; }
+    h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); line-height: 1.12; letter-spacing: -.04em; margin: 0 0 6px; }
+    h2 { font-size: 1.15rem; letter-spacing: -.02em; margin: 0; }
+    p { margin: 0; }
+    .muted { color: var(--muted); font-size: .87rem; }
+    #source { margin-top: 5px; }
+    footer { padding-top: 16px; }
+    .layout { display: grid; grid-template-columns: minmax(245px, 290px) minmax(0, 1fr); gap: 18px; margin-top: 20px; align-items: start; }
+    .card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+    fieldset { display: grid; gap: 10px; border: 0; margin: 0; padding: 0; min-inline-size: 0; }
+    legend { font-weight: 750; margin-bottom: 8px; }
+    label { display: grid; gap: 3px; min-width: 0; font-size: .85rem; font-weight: 650; }
+    select, input, button { font: inherit; color: inherit; }
+    select, input:not([type=checkbox]), button { min-height: 35px; border-radius: 6px; }
+    select, input:not([type=checkbox]) { width: 100%; min-width: 0; border: 1px solid #a3acc0; background: #fff; padding: 4px 7px; }
+    button { cursor: pointer; border: 1px solid var(--line); background: #fff; padding: 6px 10px; font-weight: 650; }
+    button:disabled { cursor: default; opacity: .55; }
+    button.primary { color: white; background: var(--accent); border-color: var(--accent); width: 100%; margin-top: 13px; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .check { display: flex; gap: 7px; align-items: center; }
+    input[type=checkbox] { margin: 0; accent-color: var(--accent); }
+    summary { cursor: pointer; font-weight: 700; }
+    details { margin-top: 3px; padding-top: 8px; border-top: 1px solid var(--line); }
+    details .fields { display: grid; gap: 9px; margin-top: 8px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip { font-size: .82rem; padding: 1px 7px; min-height: 27px; background: var(--paper); }
+    .results { display: grid; gap: 12px; min-width: 0; }
+    .rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .plot { min-width: 0; height: 285px; overflow: hidden; }
+    #trend { height: 314px; }
+    .heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 12px; align-items: center; }
+    .series { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 18px; margin-top: 8px; }
+    .swatch { width: 12px; height: 5px; border-radius: 2px; }
+    .table-scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; margin-top: 8px; font-size: .86rem; }
+    th, td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    table th { color: var(--muted); }
+    #message { min-height: 1.45em; }
+    #message.error { color: #942034; }
+    #coverage { color: #81502c; overflow-wrap: anywhere; font-size: .86rem; margin-top: 4px; }
+    .chart-option { display: flex; flex-direction: row; align-items: center; gap: 5px; }
+    .chart-option select { width: auto; min-height: 29px; }
+    @media (max-width: 960px) { .rows { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } main { padding-inline: 12px; } .top { padding-inline: 12px; } }
+  </style>
+</head>
+<body>
+  <header class="top"><a class="brand" href="https://digitalmethodlabs.com/">Digital Method</a><a class="muted" href="https://www.transtats.bts.gov/TableInfo.asp?QO_fu146_anzr=b0-gvzr&amp;gnoyr_VQ=FGJ">BTS data source</a></header>
+  <main>
+    <h1>Flight Delay Explorer</h1>
+    <p>Explore how U.S. departure delays vary by month, origin airport, and airline.</p>
+    <p id="source" class="muted">Loading data coverage.</p>
+    <div class="layout">
+      <form id="controls" class="card">
+        <fieldset id="settings" disabled>
+          <legend>Evaluation</legend>
+          <div class="pair">
+            <label>Start month<input id="start" type="month" pattern="[0-9]{4}-(0[1-9]|1[0-2])" placeholder="YYYY-MM" required></label>
+            <label>End month<input id="end" type="month" pattern="[0-9]{4}-(0[1-9]|1[0-2])" placeholder="YYYY-MM" required></label>
+          </div>
+          <label>Trend statistic<select id="aggregate">
+            <option value="mean">Mean</option><option value="median">Median</option><option value="p95">P95</option><option value="count">Valid count</option>
+          </select></label>
+          <label>Compare by<select id="group">
+            <option value="">None</option><option value="airline">Operating airline</option>
+            <option value="origin">Origin airport</option>
+          </select></label>
+          <div id="group-options" hidden>
+            <label>Groups<select id="group-add"></select></label>
+            <div id="chosen" class="chips"></div>
+            <p id="group-hint" class="muted"></p>
+          </div>
+          <label class="check"><input id="total" type="checkbox" checked> Include total</label>
+          <details open>
+            <summary>Filters</summary>
+            <div class="fields">
+              <label>Operating airline<select id="airline"></select></label>
+              <label>Origin airport<select id="origin"></select></label>
+              <label>Flight outcome<select id="outcome">
+                <option value="all">All outcomes</option><option value="completed">Completed</option>
+                <option value="cancelled">Canceled</option><option value="diverted">Diverted</option>
+              </select></label>
+              <div class="pair">
+                <label>Minimum delay (min)<input id="minimum" type="number" step="any" placeholder="Any"></label>
+                <label>Maximum delay (min)<input id="maximum" type="number" step="any" placeholder="Any"></label>
+              </div>
+            </div>
+          </details>
+        </fieldset>
+        <button id="run" class="primary" type="submit" disabled>Evaluate</button>
+      </form>
+      <div class="results">
+        <section class="card">
+          <p id="message" role="status">Preparing the explorer…</p>
+          <p id="coverage" hidden></p>
+          <div id="series" class="series" aria-label="Visible series" hidden></div>
+        </section>
+        <div id="charts" class="results" hidden>
+          <section class="card">
+            <div class="heading"><h2>Time series</h2><p class="muted">Calendar months</p></div>
+            <div id="trend" class="plot" aria-label="Signal over time"></div>
+          </section>
+          <div class="heading card">
+            <label class="chart-option">Distribution range<select id="distribution-range">
+              <option value="central">Central (P1–P99)</option><option value="full">Full</option>
+            </select></label>
+            <p class="muted">Histogram and CDF share the same value range.</p>
+          </div>
+          <div class="rows">
+            <section class="card">
+              <div class="heading"><h2>Histogram</h2>
+                <label class="chart-option">Scale<select id="scale"><option value="share">Share</option><option value="count">Count</option></select></label>
+              </div>
+              <div id="histogram" class="plot" aria-label="Signal histogram"></div>
+            </section>
+            <section class="card">
+              <div class="heading"><h2>Empirical CDF</h2><p class="muted">Share at or below each value</p></div>
+              <div id="ecdf" class="plot" aria-label="Empirical cumulative distribution"></div>
+            </section>
+          </div>
+          <section class="card">
+            <h2>Summary statistics</h2>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Series</th><th>Valid</th><th>Missing</th><th>Out of range</th><th>Mean</th><th>Median</th><th>P95</th><th>Std. dev.</th><th>Min</th><th>Max</th></tr></thead>
+                <tbody id="summary"></tbody>
+              </table>
+            </div>
+            <p class="muted">Delays are measured in minutes. Negative values indicate early departures. Missing delays are excluded from plots and from the valid count.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+    <footer class="muted">An independent Digital Method demo using public BTS Reporting Carrier On-Time Performance data.</footer>
+  </main>
+  <script type="module" src="./explorer.mjs"></script>
+</body>
+</html>

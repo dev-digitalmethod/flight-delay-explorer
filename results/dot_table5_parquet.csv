@@ -1,0 +1,5 @@
+airport,direction,computed_count,dot_count,computed_on_time_pct,dot_on_time_pct,match
+CLT,arrival,16266,16266,85.5,85.5,True
+CLT,departure,16273,16273,80.4,80.4,True
+RDU,arrival,4932,4932,77.7,77.7,True
+RDU,departure,4929,4929,80.4,80.4,True

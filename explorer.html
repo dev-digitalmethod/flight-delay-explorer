@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flight Signal Explorer | Digital Method</title>
+  <script src="/assets/plotly.js" defer></script>
+  <style>
+    :root { color-scheme: light; --navy: #101d2d; --muted: #526078; --accent: #4546a6; --line: #dbe0ed; --paper: #f4f5fa; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--paper); color: var(--navy); font: 15px/1.5 system-ui, -apple-system, sans-serif; }
+    a { color: var(--accent); }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 15px max(22px, calc((100vw - 1460px) / 2)); border-bottom: 1px solid var(--line); background: white; }
+    .brand { font-weight: 750; color: var(--accent); letter-spacing: .02em; }
+    main { max-width: 1504px; margin: auto; padding: 26px 22px 44px; }
+    h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); line-height: 1.12; letter-spacing: -.04em; margin: 0 0 6px; }
+    h2 { font-size: 1.15rem; letter-spacing: -.02em; margin: 0; }
+    p { margin: 0; }
+    .muted { color: var(--muted); font-size: .87rem; }
+    #source { margin-top: 5px; }
+    .layout { display: grid; grid-template-columns: minmax(245px, 290px) minmax(0, 1fr); gap: 18px; margin-top: 20px; align-items: start; }
+    .card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+    fieldset { display: grid; gap: 10px; border: 0; margin: 0; padding: 0; min-inline-size: 0; }
+    legend { font-weight: 750; margin-bottom: 8px; }
+    label { display: grid; gap: 3px; min-width: 0; font-size: .85rem; font-weight: 650; }
+    select, input, button { font: inherit; color: inherit; }
+    select, input:not([type=checkbox]), button { min-height: 35px; border-radius: 6px; }
+    select, input:not([type=checkbox]) { width: 100%; min-width: 0; border: 1px solid #a3acc0; background: #fff; padding: 4px 7px; }
+    button { cursor: pointer; border: 1px solid var(--line); background: #fff; padding: 6px 10px; font-weight: 650; }
+    button:disabled { cursor: default; opacity: .55; }
+    button.primary { color: white; background: var(--accent); border-color: var(--accent); width: 100%; margin-top: 13px; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .check { display: flex; gap: 7px; align-items: center; }
+    input[type=checkbox] { margin: 0; accent-color: var(--accent); }
+    summary { cursor: pointer; font-weight: 700; }
+    details { margin-top: 3px; padding-top: 8px; border-top: 1px solid var(--line); }
+    details .fields { display: grid; gap: 9px; margin-top: 8px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip { font-size: .82rem; padding: 1px 7px; min-height: 27px; background: var(--paper); }
+    .results { display: grid; gap: 12px; min-width: 0; }
+    .rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .plot { min-width: 0; height: 285px; overflow: hidden; }
+    #trend { height: 314px; }
+    .heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 12px; align-items: center; }
+    .series { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 18px; margin-top: 8px; }
+    .swatch { width: 12px; height: 5px; border-radius: 2px; }
+    .table-scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; margin-top: 8px; font-size: .86rem; }
+    th, td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    table th { color: var(--muted); }
+    #message { min-height: 1.45em; }
+    #message.error { color: #942034; }
+    #coverage { color: #81502c; overflow-wrap: anywhere; font-size: .86rem; margin-top: 4px; }
+    .chart-option { display: flex; flex-direction: row; align-items: center; gap: 5px; }
+    .chart-option select { width: auto; min-height: 29px; }
+    @media (max-width: 960px) { .rows { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } main { padding-inline: 12px; } .top { padding-inline: 12px; } }
+  </style>
+</head>
+<body>
+  <header class="top"><span class="brand">Digital Method</span><a href="/">BTS downloader</a></header>
+  <main>
+    <h1>Flight signal explorer</h1>
+    <p id="source" class="muted">Loading local Parquet data…</p>
+    <div class="layout">
+      <form id="controls" class="card">
+        <fieldset id="settings" disabled>
+          <legend>Evaluation</legend>
+          <div class="pair">
+            <label>Start date<input id="start" type="date" required></label>
+            <label>End date<input id="end" type="date" required></label>
+          </div>
+          <label>Signal<select id="signal"></select></label>
+          <div class="pair">
+            <label>Time interval<select id="grain">
+              <option value="day">Daily</option><option value="week">Weekly</option><option value="month">Monthly</option>
+            </select></label>
+            <label>Trend statistic<select id="aggregate">
+              <option value="mean">Mean</option><option value="median">Median</option><option value="p95">P95</option><option value="count">Count</option>
+            </select></label>
+          </div>
+          <label>Compare by<select id="group">
+            <option value="">None</option><option value="airline">Operating airline</option>
+            <option value="origin">Origin airport</option><option value="destination">Destination airport</option>
+          </select></label>
+          <div id="group-options" hidden>
+            <label>Groups<select id="group-add"></select></label>
+            <div id="chosen" class="chips"></div>
+            <p id="group-hint" class="muted"></p>
+          </div>
+          <label class="check"><input id="total" type="checkbox" checked> Include total</label>
+          <details open>
+            <summary>Filters</summary>
+            <div class="fields">
+              <label>Operating airline<select id="airline"></select></label>
+              <div class="pair">
+                <label>Origin<select id="origin"></select></label>
+                <label>Destination<select id="destination"></select></label>
+              </div>
+              <label>Flight outcome<select id="outcome">
+                <option value="all">All outcomes</option><option value="completed">Completed</option>
+                <option value="cancelled">Canceled</option><option value="diverted">Diverted</option>
+              </select></label>
+              <div class="pair">
+                <label>Signal minimum<input id="minimum" type="number" step="any" placeholder="Any"></label>
+                <label>Signal maximum<input id="maximum" type="number" step="any" placeholder="Any"></label>
+              </div>
+            </div>
+          </details>
+        </fieldset>
+        <button id="run" class="primary" type="submit" disabled>Evaluate</button>
+      </form>
+      <div class="results">
+        <section class="card">
+          <p id="message" role="status">Preparing the explorer…</p>
+          <p id="coverage" hidden></p>
+          <div id="series" class="series" aria-label="Visible series" hidden></div>
+        </section>
+        <div id="charts" class="results" hidden>
+          <section class="card">
+            <div class="heading"><h2>Time series</h2><p class="muted">Grouped by BTS flight date</p></div>
+            <div id="trend" class="plot" aria-label="Signal over time"></div>
+          </section>
+          <div class="heading card">
+            <label class="chart-option">Distribution range<select id="distribution-range">
+              <option value="central">Central (P1–P99)</option><option value="full">Full</option>
+            </select></label>
+            <p class="muted">Histogram and CDF share the same value range.</p>
+          </div>
+          <div class="rows">
+            <section class="card">
+              <div class="heading"><h2>Histogram</h2>
+                <label class="chart-option">Scale<select id="scale"><option value="share">Share</option><option value="count">Count</option></select></label>
+              </div>
+              <div id="histogram" class="plot" aria-label="Signal histogram"></div>
+            </section>
+            <section class="card">
+              <div class="heading"><h2>Empirical CDF</h2><p class="muted">Share at or below each value</p></div>
+              <div id="ecdf" class="plot" aria-label="Empirical cumulative distribution"></div>
+            </section>
+          </div>
+          <section class="card">
+            <h2>Summary statistics</h2>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Series</th><th>Valid</th><th>Missing</th><th>Out of range</th><th>Mean</th><th>Median</th><th>P95</th><th>Std. dev.</th><th>Min</th><th>Max</th></tr></thead>
+                <tbody id="summary"></tbody>
+              </table>
+            </div>
+            <p class="muted">Missing values are excluded from plots. Reported cause fields can be blank when no cause was reported.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    const fmt = new Intl.NumberFormat("en-US", {maximumFractionDigits: 2});
+    const colors = ["#4546a6", "#137c8b", "#ad541e", "#7a4d97", "#30753a", "#a33655"];
+    const names = {mean:"Mean", median:"Median", p95:"P95", count:"Valid count", day:"daily", week:"weekly", month:"monthly"};
+    const stats = ["n","missing","outside","mean","median","p95","stddev","min","max"];
+    const filters = ["airline", "origin", "destination"];
+    let dataset;
+    let chosen = [];
+    let current;
+    let visible = new Set();
+    let pending = false;
+    let revision = 0;
+
+    async function request(path, options) {
+      const res = await fetch(path, options);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed.");
+      return data;
+    }
+
+    function groups() {
+      const mode = $("group").value;
+      $("group-options").hidden = !mode;
+      $("group-add").replaceChildren(new Option("Add a group…", ""));
+      for (const code of dataset.values[mode] || []) {
+        if (!chosen.includes(code)) $("group-add").add(new Option(code, code));
+      }
+      $("group-add").disabled = chosen.length >= 5;
+      $("chosen").replaceChildren(...chosen.map(code => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip";
+        chip.textContent = code + " ×";
+        chip.setAttribute("aria-label", "Remove " + code);
+        chip.onclick = () => { chosen = chosen.filter(item => item !== code); groups(); };
+        return chip;
+      }));
+      $("group-hint").textContent = chosen.length ? "Choose up to five groups." : "Defaults to the three groups with the most valid values.";
+    }
+
+    function note(text, error = false) {
+      $("message").textContent = text;
+      $("message").classList.toggle("error", error);
+    }
+
+    function setBusy(busy) {
+      pending = busy;
+      $("settings").disabled = busy;
+      $("run").disabled = busy;
+      $("run").textContent = busy ? "Evaluating…" : "Evaluate";
+    }
+
+    function legend() {
+      const container = $("series");
+      container.hidden = !current.series.length;
+      container.replaceChildren(...current.series.map((series, index) => {
+        const label = document.createElement("label");
+        label.className = "check";
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = visible.has(series.id);
+        box.onchange = () => {
+          if (box.checked) visible.add(series.id);
+          else visible.delete(series.id);
+          render().catch(error => note(error.message, true));
+        };
+        const swatch = document.createElement("span");
+        swatch.className = "swatch";
+        swatch.style.backgroundColor = colors[index];
+        label.append(box, swatch, series.label);
+        return label;
+      }));
+    }
+
+    async function render() {
+      const c = current;
+      const series = c.series.map((item, index) => ({...item, color: colors[index]}))
+        .filter(item => visible.has(item.id));
+      const tbody = $("summary");
+      tbody.replaceChildren(...series.map(item => {
+        const tr = document.createElement("tr");
+        const name = document.createElement("th");
+        name.scope = "row";
+        name.textContent = item.label;
+        tr.append(name);
+        for (const stat of stats) {
+          const td = document.createElement("td");
+          td.textContent = item.summary[stat] === null ? "—" : fmt.format(item.summary[stat]);
+          tr.append(td);
+        }
+        return tr;
+      }));
+      const central = $("distribution-range").value === "central";
+      const edges = central ? c.centralEdges : c.edges;
+      const centers = edges.slice(1).map((edge, index) => (edge + edges[index]) / 2);
+      const widths = edges.slice(1).map((edge,index) => edge - edges[index]);
+      const shares = $("scale").value === "share";
+      const signal = c.label + " (" + c.unit + ")";
+      const base = {
+        autosize:true, showlegend:false, font:{family:"system-ui, sans-serif",color:"#33415a",size:12},
+        margin:{l:62,r:18,t:30,b:52}, paper_bgcolor:"#fff", plot_bgcolor:"#fff", uirevision:revision,
+      };
+      const axis = {automargin:true,gridcolor:"#e8ebf3",zerolinecolor:"#cdd3e2"};
+      const distributionAxis = edges.length ? {range:[edges[0],edges.at(-1)]} : {autorange:true};
+      const config = {responsive:true,displaylogo:false,modeBarButtonsToRemove:["lasso2d","select2d"]};
+      const trend = series.map(s => ({
+        type:"scatter",mode:c.dates.length <= 126 ? "lines+markers" : "lines",name:s.label,
+        line:{color:s.color,width:2},marker:{size:4},connectgaps:false,x:c.dates,y:s.time,customdata:s.timeCounts,
+        hovertemplate:"%{x|%b %d, %Y}<br>%{y:,.2f}<br>%{customdata:,} valid<extra>%{fullData.name}</extra>"
+      }));
+      const hist = series.filter(s => s.summary.n).map(s => {
+        const counts = central ? s.centralHistogram : s.histogram;
+        return {
+          type:"bar",name:s.label,x:centers,width:widths,y:shares ? counts.map(n=>n/s.summary.n) : counts,
+          marker:{color:s.color,line:{color:s.color,width:1}},opacity:series.length === 1 ? .8 : .44,
+          customdata:counts.map((n,i)=>[edges[i],edges[i+1],n]),
+          hovertemplate:"%{customdata[0]:.2f} to %{customdata[1]:.2f}<br>%{customdata[2]:,} values"
+            + (shares ? " / %{y:.2%}" : "") + "<extra>%{fullData.name}</extra>"
+        };
+      });
+      const ecdf = series.filter(s => s.summary.n).map(s => ({
+        type:"scatter",mode:"lines",name:s.label,x:s.ecdfX,y:s.ecdfY,line:{color:s.color,width:2,shape:"hv"},
+        hovertemplate:"%{x:,.2f}<br>%{y:.2%} at or below<extra>%{fullData.name}</extra>"
+      }));
+      await Promise.all([
+        Plotly.react("trend",trend,{...base,hovermode:"x unified",xaxis:{...axis,type:"date",title:{text:"Period start"}},
+          yaxis:{...axis,title:{text:c.aggregate==="count" ? "Valid observations" : names[c.aggregate] + " (" + c.unit + ")"}}},config),
+        Plotly.react("histogram",hist,{...base,uirevision:revision+"-"+central+"-"+shares,barmode:"overlay",xaxis:{...axis,...distributionAxis,title:{text:signal}},
+          yaxis:{...axis,tickformat:shares ? ".0%" : ",d",title:{text:shares ? "Share within series" : "Count"}}},config),
+        Plotly.react("ecdf",ecdf,{...base,uirevision:revision+"-"+central,xaxis:{...axis,...distributionAxis,title:{text:signal}},
+          yaxis:{...axis,range:[0,1.02],tickformat:".0%",title:{text:"Cumulative share"}}},config),
+      ]);
+    }
+
+    function limit(id) {
+      const input = $(id);
+      return input.value === "" ? null : input.valueAsNumber;
+    }
+
+    async function run() {
+      if (pending || !dataset || !dataset.months.length || !$("controls").reportValidity()) return;
+      const body = {
+        start:$("start").value,end:$("end").value,signal:$("signal").value,grain:$("grain").value,
+        aggregate:$("aggregate").value,group:$("group").value,groups:chosen,total:$("total").checked,
+        outcome:$("outcome").value,filters:Object.fromEntries(filters.map(id=>[id,$(id).value])),
+        min:limit("minimum"),max:limit("maximum"),
+      };
+      setBusy(true);
+      $("charts").hidden = true;
+      $("series").hidden = true;
+      $("coverage").hidden = true;
+      note("Evaluating selected flights…");
+      try {
+        current = await request("/api/evaluate", {
+          method:"POST",headers:{"Content-Type":"application/json","X-Download-Token":dataset.token},
+          body:JSON.stringify(body),
+        });
+        revision++;
+        visible = new Set(current.series.map(item=>item.id));
+        const coverage = $("coverage");
+        coverage.hidden = !current.missingMonths.length;
+        coverage.textContent = "Missing months in this period · " + current.missingMonths.join(", ");
+        const hasData = current.series.some(item=>item.summary.n);
+        note(hasData
+          ? current.label + " · " + body.start + " to " + body.end + " · " + names[current.grain] + " " + names[current.aggregate].toLowerCase()
+          : "No valid signal values match the period and filters.");
+        legend();
+        $("charts").hidden = !current.series.length;
+        if (current.series.length) await render();
+      } catch (error) {
+        note(error.message, true);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function init() {
+      try {
+        dataset = await request("/api/explore");
+        if (!dataset.months.length) {
+          $("source").textContent = "No Parquet files found";
+          note("Download at least one month with the BTS downloader.");
+          return;
+        }
+        const first = dataset.months[0];
+        const last = dataset.months.at(-1);
+        $("source").textContent = dataset.source === "sample"
+          ? "Bundled sample · October 2025"
+          : "Downloaded BTS data · " + dataset.months.length + " available months · " + first + " to " + last;
+        for (const id of ["start","end"]) {
+          $(id).min = first + "-01";
+          $(id).max = dataset.lastDate;
+        }
+        $("start").value = last + "-01";
+        $("end").value = dataset.lastDate;
+        $("signal").replaceChildren(...dataset.signals.map(s=>new Option(s.label + " (" + s.unit + ")", s.id)));
+        for (const id of filters) {
+          $(id).replaceChildren(new Option("All", ""), ...dataset.values[id].map(code=>new Option(code, code)));
+        }
+        setBusy(false);
+        await run();
+      } catch (error) {
+        $("source").textContent = "Could not load data";
+        note(error.message,true);
+      }
+    }
+    $("controls").onsubmit = event => { event.preventDefault(); run(); };
+    $("group").onchange = () => { chosen = []; groups(); };
+    $("group-add").onchange = () => {
+      if ($("group-add").value && chosen.length < 5) chosen.push($("group-add").value);
+      groups();
+    };
+    $("scale").onchange = () => { if(current) render().catch(error => note(error.message,true)); };
+    $("distribution-range").onchange = $("scale").onchange;
+    window.addEventListener("DOMContentLoaded",init);
+  </script>
+</body>
+</html>
