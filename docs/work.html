@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Selected engineering and data analysis work from Digital Method.">
+  <title>Selected Work | Digital Method</title>
+  <style>
+    :root { color-scheme: light; --ink: #101d2d; --muted: #455267; --accent: #4546a6; --border: #dbe0ed; --paper: #f4f5fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 system-ui, sans-serif; }
+    header { background: white; border-bottom: 1px solid var(--border); }
+    nav, main { width: min(100% - 2rem, 68rem); margin: auto; }
+    nav { padding: 1rem 0; }
+    nav a { font-weight: 750; text-decoration: none; }
+    main { padding: 3rem 0 4rem; }
+    h1, h2 { line-height: 1.12; letter-spacing: -.035em; margin: 0; }
+    h1 { font-size: clamp(2.35rem, 6vw, 3.75rem); }
+    h2 { font-size: 1.65rem; }
+    p { margin: .65rem 0 0; color: var(--muted); }
+    a { color: var(--accent); text-underline-offset: .2em; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    .work { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); align-items: start; gap: 1rem; margin-top: 1.75rem; }
+    article { max-width: 38rem; padding: clamp(1rem, 4vw, 1.75rem); background: white; border: 1px solid var(--border); border-radius: .75rem; }
+    .category { margin: 0 0 .5rem; font-size: .9rem; font-weight: 700; color: var(--accent); }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem 1.15rem; margin-top: 1.25rem; }
+    .button { display: inline-block; background: var(--accent); color: white; font-weight: 700; text-decoration: none; border-radius: .45rem; padding: .52rem .95rem; }
+  </style>
+</head>
+<body>
+  <header><nav aria-label="Main"><a href="https://digitalmethodlabs.com/">Digital Method</a></nav></header>
+  <main>
+    <h1>Selected Work</h1>
+    <p>Engineering demos and case studies from Digital Method.</p>
+    <div class="work">
+      <article>
+        <p class="category">Data analysis and workflow automation</p>
+        <h2>Flight Delay Explorer</h2>
+        <p>We turned 86 public BTS flight-data archives into an interactive dashboard covering 46.9 million records. The case study shows how we checked the data, compared seasonal patterns, and investigated a delay spike around the July 2024 CrowdStrike outage.</p>
+        <div class="actions">
+          <a class="button" href="./">Try the Explorer</a>
+          <a href="./stories.html">Read the case study</a>
+        </div>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
