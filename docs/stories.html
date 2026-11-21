@@ -4,27 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="A Digital Method case study in turning public flight records into a seasonal comparison and event analysis.">
+<meta name="theme-color" content="#f6f8f7">
 <title>From flight records to insights | Digital Method</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./brand.css">
 <style>
-:root{color-scheme:light;--ink:#101d2d;--muted:#46566a;--accent:#34358f;--line:#dbe0ed;--paper:#f4f5fa}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.62 system-ui,sans-serif}
-a{color:var(--accent);text-underline-offset:.2em}a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
-header{background:#fff;border-bottom:1px solid var(--line)}nav,main{width:min(100% - 32px, 980px);margin:auto}
-nav{min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:700}main{padding:44px 0 48px}
+main{width:min(100% - 2rem, 61.25rem);margin:auto;padding-block:clamp(2.5rem,7vw,5.5rem) 3rem}
 h1,h2{line-height:1.15;letter-spacing:-.035em;margin:0 0 12px}h1{font-size:clamp(2.15rem,6vw,4rem);max-width:760px}h2{font-size:clamp(1.5rem,4vw,2rem)}
 p{margin:0 0 14px}.lead{max-width:790px;font-size:1.12rem;color:var(--muted)}
-.button{display:inline-block;padding:10px 18px;border-radius:7px;background:var(--accent);color:white;text-decoration:none;font-weight:700}
-.story,.process{background:#fff;border:1px solid var(--line);border-radius:12px;margin-top:20px;padding:clamp(16px,4vw,32px)}
-.label{color:var(--accent);font-weight:750;font-size:.87rem;margin-bottom:8px}.method{background:var(--paper);border-radius:7px;padding:12px;margin:18px 0 0}
+.story,.process{background:var(--surface);border:1px solid var(--line);border-radius:1rem;margin-top:20px;padding:clamp(16px,4vw,32px)}
+.label{color:var(--teal);font-weight:750;font-size:.87rem;margin-bottom:8px}.method{background:var(--background);border-radius:7px;padding:12px;margin:18px 0 0}
 .links{display:flex;flex-wrap:wrap;gap:4px 20px;margin:12px 0 0}
 figure{margin:20px 0 0}figcaption,caption{text-align:left;margin-bottom:10px;color:var(--muted);font-weight:650}
 .bar-row{display:grid;grid-template-columns:3ch minmax(0,1fr) 6ch;align-items:center;gap:10px;margin:4px 0;font-variant-numeric:tabular-nums;font-size:.9rem}
-.bar-meter{height:8px;border-radius:10px;background:#e7eaf6;overflow:hidden}.bar-meter i{display:block;height:100%;background:#8588bb;border-radius:10px}.highlight{color:var(--accent)}.highlight i{background:var(--accent)}
-.scroll{overflow-x:auto;margin-top:20px}table{width:100%;border-collapse:collapse;font-size:.94rem;font-variant-numeric:tabular-nums}th,td{text-align:right;padding:6px 9px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}.selected{background:#efeffb}
+.bar-meter{height:8px;border-radius:10px;background:var(--tint);overflow:hidden}.bar-meter i{display:block;height:100%;background:#54877f;border-radius:10px}.highlight{color:var(--teal)}.highlight i{background:var(--teal)}
+.scroll{overflow-x:auto;margin-top:20px}table{width:100%;border-collapse:collapse;font-size:.94rem;font-variant-numeric:tabular-nums}th,td{text-align:right;padding:6px 9px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}.selected{background:var(--tint)}
 </style>
 </head>
 <body>
-<header><nav aria-label="Main"><a href="https://digitalmethodlabs.com/">Digital Method</a><a href="./">Flight Delay Explorer</a></nav></header>
+<header class="site-header">
+  <nav class="header-inner" aria-label="Main">
+    <a href="https://digitalmethodlabs.com/"><img class="wordmark" src="./logo-primary.svg" alt="Digital Method"></a>
+    <div class="site-links">
+      <a href="https://dev-digitalmethod.github.io/selected-works/">Works</a>
+      <a href="./">Flight Delay Explorer</a>
+    </div>
+  </nav>
+</header>
 <main>
 <h1>From flight records to insights</h1>
 <p class="lead">How Digital Method turned public flight records into an interactive dashboard to compare seasonal patterns and investigate a sudden spike in delays.</p>

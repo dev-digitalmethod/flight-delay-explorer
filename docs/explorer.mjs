@@ -2,7 +2,9 @@ import {evaluate} from "./analytics.mjs";
 
 const $ = id => document.getElementById(id);
 const fmt = new Intl.NumberFormat("en-US", {maximumFractionDigits: 2});
-const colors = ["#4546a6", "#137c8b", "#ad541e", "#7a4d97", "#30753a", "#a33655"];
+const theme = getComputedStyle(document.documentElement);
+const color = name => theme.getPropertyValue(name).trim();
+const colors = [color("--teal"), "#496a9c", "#ad541e", "#7a4d97", "#30753a", "#a33655"];
 const names = {mean:"Mean", median:"Median", p95:"P95", count:"Valid count", month:"monthly"};
 const stats = ["n","missing","outside","mean","median","p95","stddev","min","max"];
 const filters = ["airline", "origin"];
@@ -94,10 +96,10 @@ async function render() {
   const shares = $("scale").value === "share";
   const signal = c.label + " (" + c.unit + ")";
   const base = {
-    autosize:true, showlegend:false, font:{family:"system-ui, sans-serif",color:"#33415a",size:12},
-    margin:{l:62,r:18,t:30,b:52}, paper_bgcolor:"#fff", plot_bgcolor:"#fff", uirevision:revision,
+    autosize:true, showlegend:false, font:{family:color("--font"),color:color("--muted"),size:12},
+    margin:{l:62,r:18,t:30,b:52}, paper_bgcolor:color("--surface"), plot_bgcolor:color("--surface"), uirevision:revision,
   };
-  const axis = {automargin:true,gridcolor:"#e8ebf3",zerolinecolor:"#cdd3e2"};
+  const axis = {automargin:true,gridcolor:color("--line"),zerolinecolor:"#a8bbb6"};
   const distributionAxis = edges.length ? {range:[edges[0],edges.at(-1)]} : {autorange:true};
   const config = {responsive:true,displaylogo:false,modeBarButtonsToRemove:["lasso2d","select2d"]};
   const trend = series.map(s => ({
