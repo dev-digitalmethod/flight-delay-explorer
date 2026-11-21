@@ -19,6 +19,7 @@
     h1 + p { color: var(--muted); }
     .muted { color: var(--muted); font-size: .87rem; }
     #source { margin-top: 5px; }
+    .demo-scope { margin-top: .5rem; }
     footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
     .layout { display: grid; grid-template-columns: minmax(245px, 290px) minmax(0, 1fr); gap: 18px; margin-top: 20px; align-items: start; }
     .card { background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; padding: 16px; min-width: 0; }
@@ -77,6 +78,7 @@
     <h1>Flight Delay Explorer</h1>
     <p>Explore how U.S. departure delays vary by month, origin airport, and airline.</p>
     <p id="source" class="muted">Loading data coverage.</p>
+    <p class="muted demo-scope">This demo analyzes one signal, departure delay. The <a href="https://github.com/dev-digitalmethod/flight-delay-explorer#explore-a-signal">full application</a> supports 13 flight variables, including arrival delay, taxi-out time, and airborne time.</p>
     <div class="layout">
       <form id="controls" class="card">
         <fieldset id="settings" disabled>
