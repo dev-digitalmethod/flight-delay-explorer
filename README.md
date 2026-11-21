@@ -5,6 +5,10 @@ Explore monthly departure delays by origin airport, operating airline, and fligh
 
 ## GitHub Pages demo
 
+The [case study](docs/stories.html) shows how the data was prepared and compares
+seasonality with a closer look at the July 2024 Windows outage.
+The [DuckDB queries](story_queries.sql) reproduce the case-study figures from the local Parquet partitions.
+
 The static site is in `docs/`. It ships with the July 2019 through August 2026
 export and opens on Raleigh-Durham (RDU), January 2024 through the latest available month.
 The date picker includes all months in the export. A monthly point covers the entire calendar month.

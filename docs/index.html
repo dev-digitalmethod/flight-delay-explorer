@@ -13,6 +13,7 @@
     body { margin: 0; background: var(--paper); color: var(--navy); font: 15px/1.5 system-ui, -apple-system, sans-serif; }
     a { color: var(--accent); }
     .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 15px max(22px, calc((100vw - 1460px) / 2)); border-bottom: 1px solid var(--line); background: white; }
+    .top-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 18px; }
     .brand { text-decoration: none; font-weight: 750; color: var(--accent); letter-spacing: .02em; }
     main { max-width: 1504px; margin: auto; padding: 26px 22px 44px; }
     h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); line-height: 1.12; letter-spacing: -.04em; margin: 0 0 6px; }
@@ -63,7 +64,7 @@
   </style>
 </head>
 <body>
-  <header class="top"><a class="brand" href="https://digitalmethodlabs.com/">Digital Method</a><a class="muted" href="https://www.transtats.bts.gov/TableInfo.asp?QO_fu146_anzr=b0-gvzr&amp;gnoyr_VQ=FGJ">BTS data source</a></header>
+  <header class="top"><a class="brand" href="https://digitalmethodlabs.com/">Digital Method</a><div class="top-links"><a class="muted" href="./stories.html">Case study</a> <a class="muted" href="https://www.transtats.bts.gov/TableInfo.asp?QO_fu146_anzr=b0-gvzr&amp;gnoyr_VQ=FGJ">BTS data source</a></div></header>
   <main>
     <h1>Flight Delay Explorer</h1>
     <p>Explore how U.S. departure delays vary by month, origin airport, and airline.</p>
